@@ -1,0 +1,14 @@
+추출 시각: 2026-05-11T03:01:00+09:00
+요구사항 ID: SUB-001
+요구사항 요약: 요구사항 수행 내역서 문서 1개를 제출 산출물로 준비한다.
+최종 판정: DONE
+원천 로그 경로: runtime/work.log
+
+[cmd] test -f codex-harness/tasks/mission1_1/submission/docs/requirements_execution_report.md
+[exit] 0
+[stdout]
+
+[stderr]
+
+[판정 근거]
+제출용 수행 내역서 `submission/docs/requirements_execution_report.md`가 존재한다. 내용 검증은 DOC-001 증거와 같은 work.log 구간에 연결된다.

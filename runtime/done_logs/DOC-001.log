@@ -1,0 +1,14 @@
+추출 시각: 2026-05-11T03:01:00+09:00
+요구사항 ID: DOC-001
+요구사항 요약: 요구사항 수행 내역서에 설정/명령어 기록과 필수 증거 자료 체크리스트를 작성한다.
+최종 판정: DONE
+원천 로그 경로: runtime/work.log
+
+[cmd] test -f codex-harness/tasks/mission1_1/submission/docs/requirements_execution_report.md && test -f codex-harness/tasks/mission1_1/submission/home/agent-admin/agent-app/bin/monitor.sh && bash -n codex-harness/tasks/mission1_1/submission/home/agent-admin/agent-app/bin/monitor.sh && grep -q "필수 증거 자료 체크리스트" codex-harness/tasks/mission1_1/submission/docs/requirements_execution_report.md && grep -q "SSH 포트 변경" codex-harness/tasks/mission1_1/submission/docs/requirements_execution_report.md && grep -q "crontab 매분 실행" codex-harness/tasks/mission1_1/submission/docs/requirements_execution_report.md && ! grep -R "agent_api_key_test" codex-harness/tasks/mission1_1/submission/docs
+[exit] 0
+[stdout]
+
+[stderr]
+
+[판정 근거]
+수행 내역서 파일이 존재하고 필수 증거 자료 체크리스트, SSH 포트 변경, crontab 매분 실행 항목을 포함한다. 제출 문서에는 API 키 원문이 없다.

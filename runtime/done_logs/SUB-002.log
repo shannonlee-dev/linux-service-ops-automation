@@ -1,0 +1,14 @@
+추출 시각: 2026-05-11T07:40:19+09:00
+요구사항 ID: SUB-002
+요구사항 요약: 자동화 스크립트 소스코드 monitor.sh를 제출 산출물로 준비한다.
+최종 판정: DONE
+원천 로그 경로: runtime/work.log
+
+[cmd] test -f codex-harness/tasks/mission1_1/submission/home/agent-admin/agent-app/bin/monitor.sh && bash -n codex-harness/tasks/mission1_1/submission/home/agent-admin/agent-app/bin/monitor.sh
+[exit] 0
+[stdout]
+
+[stderr]
+
+[판정 근거]
+제출용 `monitor.sh`가 존재하고 Bash 문법 검사를 통과했다. 2026-05-11T07:40:19+09:00에 MON-002 프로세스 탐색 오판을 줄이도록 수정한 뒤 다시 `bash -n`을 실행해 exit 0을 확인했다. 실제 시스템 배치와 owner/group/mode 검증은 `runtime/blocked.log` 및 sudo 적용 루프에서 다룬다.
