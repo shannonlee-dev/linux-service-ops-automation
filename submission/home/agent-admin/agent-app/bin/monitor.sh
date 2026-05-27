@@ -2,150 +2,168 @@
 set -u
 set -o pipefail
 
-APP_PATTERN="${AGENT_APP_PROCESS_NAME:-agent_app.py}"
-PORT="${AGENT_PORT:-15034}"
-LOG_FILE="${AGENT_LOG_DIR:-/var/log/agent-app}/monitor.log"
-MAX_LOG_SIZE="${MONITOR_MAX_LOG_SIZE:-10485760}"
-MAX_ROTATED_FILES="${MONITOR_MAX_ROTATED_FILES:-10}"
+AGENT_HOME="${AGENT_HOME:-/home/agent-admin/agent-app}"
+AGENT_PORT="${AGENT_PORT:-15034}"
+AGENT_LOG_DIR="${AGENT_LOG_DIR:-/var/log/agent-app}"
+PROCESS_PATTERN="${AGENT_PROCESS_PATTERN:-agent-app-linux|agent_app.py|agent-app}"
+LOG_FILE="${AGENT_LOG_DIR}/monitor.log"
+MAX_BYTES="${MONITOR_MAX_BYTES:-10485760}"
+MAX_FILES="${MONITOR_MAX_FILES:-10}"
+
+warn_count=0
+
+print_section() {
+  printf '\n%s\n' "$1"
+}
+
+warn() {
+  warn_count=$((warn_count + 1))
+  printf '[WARNING] %s\n' "$*"
+}
 
 fail() {
-  printf '%s\n' "$1"
+  printf '[ERROR] %s\n' "$*" >&2
   exit 1
 }
 
-warn_if_gt() {
-  label="$1"
-  value="$2"
-  threshold="$3"
-  awk -v label="$label" -v value="$value" -v threshold="$threshold" '
-    BEGIN {
-      if ((value + 0) > (threshold + 0)) {
-        printf("[WARNING] %s threshold exceeded (%s%% > %s%%)\n", label, value, threshold)
+first_number() {
+  awk 'match($0, /[0-9]+([.][0-9]+)?/) { print substr($0, RSTART, RLENGTH); exit }'
+}
+
+rotate_logs() {
+  mkdir -p "$AGENT_LOG_DIR" || fail "cannot create log directory: $AGENT_LOG_DIR"
+
+  if [ -f "$LOG_FILE" ]; then
+    size=$(wc -c < "$LOG_FILE" 2>/dev/null || printf '0')
+    if [ "${size:-0}" -ge "$MAX_BYTES" ]; then
+      i=$((MAX_FILES - 1))
+      while [ "$i" -ge 1 ]; do
+        if [ -f "${LOG_FILE}.${i}" ]; then
+          if [ "$i" -eq $((MAX_FILES - 1)) ]; then
+            rm -f "${LOG_FILE}.${MAX_FILES}" 2>/dev/null || true
+          fi
+          mv -f "${LOG_FILE}.${i}" "${LOG_FILE}.$((i + 1))"
+        fi
+        i=$((i - 1))
+      done
+      mv -f "$LOG_FILE" "${LOG_FILE}.1"
+    fi
+  fi
+
+  keep_index=$((MAX_FILES + 1))
+  while [ "$keep_index" -le 99 ]; do
+    rm -f "${LOG_FILE}.${keep_index}" 2>/dev/null || true
+    keep_index=$((keep_index + 1))
+  done
+}
+
+find_agent_pid() {
+  if command -v pgrep >/dev/null 2>&1; then
+    pgrep -f "$PROCESS_PATTERN" | awk 'NR == 1 { print; exit }'
+    return 0
+  fi
+  ps -eo pid=,args= | awk -v pat="$PROCESS_PATTERN" '$0 ~ pat { print $1; exit }'
+}
+
+check_process() {
+  pid="$(find_agent_pid)"
+  if [ -z "${pid:-}" ]; then
+    fail "Checking process '${PROCESS_PATTERN}'... [FAIL]"
+  fi
+  printf "Checking process '%s'... [OK] (PID: %s)\n" "$PROCESS_PATTERN" "$pid"
+}
+
+check_port() {
+  if command -v ss >/dev/null 2>&1; then
+    if ss -H -tuln | awk -v port=":${AGENT_PORT}" '$0 ~ port { found=1 } END { exit found ? 0 : 1 }'; then
+      printf 'Checking port %s... [OK]\n' "$AGENT_PORT"
+      return 0
+    fi
+  elif command -v netstat >/dev/null 2>&1; then
+    if netstat -tuln | awk -v port=":${AGENT_PORT}" '$0 ~ port { found=1 } END { exit found ? 0 : 1 }'; then
+      printf 'Checking port %s... [OK]\n' "$AGENT_PORT"
+      return 0
+    fi
+  fi
+  fail "Checking port ${AGENT_PORT}... [FAIL]"
+}
+
+check_firewall() {
+  if command -v ufw >/dev/null 2>&1; then
+    status="$(ufw status 2>/dev/null | head -n 1 || true)"
+    if printf '%s\n' "$status" | grep -qi 'active'; then
+      printf 'Firewall status: [OK] UFW active\n'
+    else
+      warn "UFW is not active"
+    fi
+  elif command -v firewall-cmd >/dev/null 2>&1; then
+    if firewall-cmd --state >/dev/null 2>&1; then
+      printf 'Firewall status: [OK] firewalld active\n'
+    else
+      warn "firewalld is not active"
+    fi
+  else
+    warn "No supported firewall command found"
+  fi
+}
+
+cpu_usage() {
+  if command -v top >/dev/null 2>&1; then
+    top -bn1 | awk -F'[, ]+' '/Cpu\(s\)|%Cpu/ {
+      for (i=1; i<=NF; i++) {
+        if ($i == "id") {
+          printf "%.1f\n", 100 - $(i-1)
+          exit
+        }
       }
     }'
-}
-
-sample_cpu_percent() {
-  if [ -n "${MONITOR_CPU_OVERRIDE:-}" ]; then
-    printf '%s\n' "$MONITOR_CPU_OVERRIDE"
-    return 0
   fi
-
-  read -r _ user1 nice1 system1 idle1 iowait1 irq1 softirq1 steal1 _ < /proc/stat
-  total1=$((user1 + nice1 + system1 + idle1 + iowait1 + irq1 + softirq1 + steal1))
-  idle_all1=$((idle1 + iowait1))
-  sleep 1
-  read -r _ user2 nice2 system2 idle2 iowait2 irq2 softirq2 steal2 _ < /proc/stat
-  total2=$((user2 + nice2 + system2 + idle2 + iowait2 + irq2 + softirq2 + steal2))
-  idle_all2=$((idle2 + iowait2))
-  total_delta=$((total2 - total1))
-  idle_delta=$((idle_all2 - idle_all1))
-
-  awk -v total="$total_delta" -v idle="$idle_delta" 'BEGIN {
-    if (total <= 0) {
-      printf "0.0"
-    } else {
-      printf "%.1f", ((total - idle) / total) * 100
-    }
-  }'
 }
 
-sample_mem_percent() {
-  if [ -n "${MONITOR_MEM_OVERRIDE:-}" ]; then
-    printf '%s\n' "$MONITOR_MEM_OVERRIDE"
-    return 0
-  fi
-
-  free | awk '/Mem:/ {printf "%.1f", ($3 / $2) * 100}'
+mem_usage() {
+  free | awk '/^Mem:/ { printf "%.1f\n", ($3 / $2) * 100 }'
 }
 
-sample_disk_percent() {
-  if [ -n "${MONITOR_DISK_OVERRIDE:-}" ]; then
-    printf '%s\n' "$MONITOR_DISK_OVERRIDE"
-    return 0
-  fi
-
-  df / | awk 'NR == 2 {gsub("%", "", $5); print $5}'
+disk_usage() {
+  df -P / | awk 'NR == 2 { gsub(/%/, "", $5); print $5 }'
 }
 
-rotate_logs_if_needed() {
-  [ -f "$LOG_FILE" ] || return 0
-
-  current_size="$(stat -c '%s' "$LOG_FILE" 2>/dev/null || printf '0')"
-  [ "$current_size" -le "$MAX_LOG_SIZE" ] && return 0
-
-  i=$((MAX_ROTATED_FILES - 1))
-  while [ "$i" -ge 1 ]; do
-    if [ -f "$LOG_FILE.$i" ]; then
-      mv "$LOG_FILE.$i" "$LOG_FILE.$((i + 1))"
-    fi
-    i=$((i - 1))
-  done
-  mv "$LOG_FILE" "$LOG_FILE.1"
-  : > "$LOG_FILE"
-
-  find "$(dirname "$LOG_FILE")" -maxdepth 1 -type f -name 'monitor.log.*' \
-    | sort -Vr \
-    | awk -v keep="$MAX_ROTATED_FILES" 'NR > keep {print}' \
-    | xargs -r rm -f
+gt_threshold() {
+  awk -v value="$1" -v limit="$2" 'BEGIN { exit (value > limit) ? 0 : 1 }'
 }
 
-find_app_pid() {
-  pgrep -u "$(id -u)" -f "$APP_PATTERN" \
-    | awk -v self="$$" '$1 != self {print; exit}'
+main() {
+  print_section '====== SYSTEM MONITOR RESULT ======'
+  print_section '[HEALTH CHECK]'
+  check_process
+  check_port
+
+  print_section '[STATUS CHECK]'
+  check_firewall
+
+  print_section '[RESOURCE MONITORING]'
+  cpu="$(cpu_usage | first_number)"
+  mem="$(mem_usage | first_number)"
+  disk="$(disk_usage | first_number)"
+  [ -n "${cpu:-}" ] || cpu="0.0"
+  [ -n "${mem:-}" ] || mem="0.0"
+  [ -n "${disk:-}" ] || disk="0"
+
+  printf 'CPU Usage : %.1f%%\n' "$cpu"
+  printf 'MEM Usage : %.1f%%\n' "$mem"
+  printf 'DISK Used  : %s%%\n' "$disk"
+
+  gt_threshold "$cpu" 20 && warn "CPU threshold exceeded (${cpu}% > 20%)"
+  gt_threshold "$mem" 10 && warn "MEM threshold exceeded (${mem}% > 10%)"
+  gt_threshold "$disk" 80 && warn "DISK_USED threshold exceeded (${disk}% > 80%)"
+
+  rotate_logs
+  timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
+  log_pid="$(find_agent_pid)"
+  printf '[%s] PID:%s CPU:%.1f%% MEM:%.1f%% DISK_USED:%s%%\n' \
+    "$timestamp" "${log_pid:-unknown}" "$cpu" "$mem" "$disk" >> "$LOG_FILE" || fail "cannot append log"
+  printf '\n[INFO] Log appended: %s\n' "$LOG_FILE"
+  printf '[INFO] Warning count: %s\n' "$warn_count"
 }
 
-printf '%s\n' '====== SYSTEM MONITOR RESULT ======'
-printf '\n%s\n' '[HEALTH CHECK]'
-
-pid="$(find_app_pid)"
-if [ -z "$pid" ]; then
-  fail "Checking process '$APP_PATTERN'... [FAIL]"
-fi
-printf "Checking process '%s'... [OK] (PID: %s)\n" "$APP_PATTERN" "$pid"
-
-if ! ss -tuln | awk -v port=":$PORT" '$5 ~ port "$" {found = 1} END {exit found ? 0 : 1}'; then
-  fail "Checking port $PORT... [FAIL]"
-fi
-printf 'Checking port %s... [OK]\n' "$PORT"
-
-if command -v ufw >/dev/null 2>&1; then
-  firewall_status="$(ufw status 2>/dev/null | awk -F': ' '/^Status:/ {print $2; exit}')"
-  if [ "$firewall_status" != "active" ]; then
-    printf '%s\n' '[WARNING] firewall is not active'
-  fi
-elif command -v firewall-cmd >/dev/null 2>&1; then
-  firewall_state="$(firewall-cmd --state 2>/dev/null || printf 'unknown')"
-  if [ "$firewall_state" != "running" ]; then
-    printf '%s\n' '[WARNING] firewall is not active'
-  fi
-else
-  printf '%s\n' '[WARNING] firewall command is not available'
-fi
-
-printf '\n%s\n' '[RESOURCE MONITORING]'
-cpu="$(sample_cpu_percent)"
-mem="$(sample_mem_percent)"
-disk="$(sample_disk_percent)"
-printf 'CPU Usage : %s%%\n' "$cpu"
-printf 'MEM Usage : %s%%\n' "$mem"
-printf 'DISK Used : %s%%\n' "$disk"
-
-warn_if_gt "CPU" "$cpu" "20"
-warn_if_gt "MEM" "$mem" "10"
-warn_if_gt "DISK_USED" "$disk" "80"
-
-log_dir="$(dirname "$LOG_FILE")"
-if [ ! -d "$log_dir" ]; then
-  fail "Log directory does not exist: $log_dir"
-fi
-if [ ! -w "$log_dir" ]; then
-  fail "Log directory is not writable: $log_dir"
-fi
-
-rotate_logs_if_needed
-printf '[%s] PID:%s CPU:%s%% MEM:%s%% DISK_USED:%s%%\n' \
-  "$(date '+%Y-%m-%d %H:%M:%S')" "$pid" "$cpu" "$mem" "$disk" >> "$LOG_FILE" \
-  || fail "Failed to append log: $LOG_FILE"
-
-printf '\n[INFO] Log appended: %s\n' "$LOG_FILE"
+main "$@"

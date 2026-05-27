@@ -1,0 +1,420 @@
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:31+09:00
+[req] ENV-001,SEC-001,SEC-002,SEC-003,SEC-004,PERM-001,PERM-002,PERM-003,PERM-004,PERM-005,PERM-006,DATA-001,FUNC-001,FUNC-002,FUNC-003,FUNC-004,FUNC-010,FUNC-012,BONUS-001,BONUS-002,BONUS-003,BONUS-004,BONUS-005
+[title] Preflight
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] preflight checks
+[stdout/stderr]
+root_uid=1267600500 mission_zip=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/agent-app.zip monitor=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/monitor.sh report=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/report.sh
+[exit] 2
+[interpretation] BLOCKED: root 권한 또는 필수 명령/소스 파일이 부족해 시스템 적용을 중단한다.
+
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:36+09:00
+[req] ENV-001,SEC-001,SEC-002,SEC-003,SEC-004,PERM-001,PERM-002,PERM-003,PERM-004,PERM-005,PERM-006,DATA-001,FUNC-001,FUNC-002,FUNC-003,FUNC-004,FUNC-010,FUNC-012,BONUS-001,BONUS-002,BONUS-003,BONUS-004,BONUS-005
+[title] Preflight
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] preflight checks
+[stdout/stderr]
+root_uid=0 mission_zip=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/agent-app.zip monitor=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/monitor.sh report=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/report.sh
+[exit] 0
+[interpretation] PASS: root 권한과 필수 소스/명령을 확인했다.
+
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:36+09:00
+[req] SEC-001,SEC-002
+[title] Configure OpenSSH
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] cp /etc/ssh/sshd_config '/etc/ssh/sshd_config.agent-mission.20260527T152436+0900.bak'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: SSH 설정 백업
+
+[성공] SSH 설정 백업
+[cmd] sed -i '/^# BEGIN agent mission$/,/^# END agent mission$/d' /etc/ssh/sshd_config && sed -i -E 's/^([[:space:]]*Port[[:space:]]+)/# agent mission disabled: \1/' /etc/ssh/sshd_config && sed -i -E 's/^([[:space:]]*PermitRootLogin[[:space:]]+)/# agent mission disabled: \1/' /etc/ssh/sshd_config && printf '\n# BEGIN agent mission\nPort 20022\nPermitRootLogin no\n# END agent mission\n' >> /etc/ssh/sshd_config
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: SSH Port/PermitRootLogin 설정 적용
+
+[성공] SSH Port/PermitRootLogin 설정 적용
+[cmd] '/usr/sbin/sshd' -t
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: sshd 설정 문법 검사
+
+[성공] sshd 설정 문법 검사
+[cmd] mkdir -p /etc/systemd/system/ssh.socket.d && printf '%s\n' '[Socket]' 'ListenStream=' 'ListenStream=20022' > /etc/systemd/system/ssh.socket.d/override.conf && systemctl daemon-reload
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: ssh.socket 20022 override 설정
+
+[성공] ssh.socket 20022 override 설정
+[cmd] systemctl restart ssh.socket 2>/dev/null || :; systemctl restart ssh || systemctl restart sshd || systemctl start ssh || systemctl start sshd
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: ssh 서비스 reload/start
+
+[성공] ssh 서비스 reload/start
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:36+09:00
+[req] SEC-003,SEC-004
+[title] Configure firewall
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] ufw status verbose > '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/runtime/archive/ufw_before_20260527T152436+0900.txt' 2>&1
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: UFW 현재 상태 백업
+
+[성공] UFW 현재 상태 백업
+[cmd] ufw --force reset && ufw default deny incoming && ufw default allow outgoing && ufw allow 20022/tcp && ufw allow 15034/tcp && ufw --force enable
+[stdout/stderr]
+Backing up 'user.rules' to '/etc/ufw/user.rules.20260527_152437'
+Backing up 'before.rules' to '/etc/ufw/before.rules.20260527_152437'
+Backing up 'after.rules' to '/etc/ufw/after.rules.20260527_152437'
+Backing up 'user6.rules' to '/etc/ufw/user6.rules.20260527_152437'
+Backing up 'before6.rules' to '/etc/ufw/before6.rules.20260527_152437'
+Backing up 'after6.rules' to '/etc/ufw/after6.rules.20260527_152437'
+
+Default incoming policy changed to 'deny'
+(be sure to update your rules accordingly)
+Default outgoing policy changed to 'allow'
+(be sure to update your rules accordingly)
+Rules updated
+Rules updated (v6)
+Rules updated
+Rules updated (v6)
+Firewall is active and enabled on system startup
+[exit] 0
+[interpretation] PASS: UFW 20022/15034 허용 정책 적용
+
+[성공] UFW 20022/15034 허용 정책 적용
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:37+09:00
+[req] PERM-001,PERM-002,PERM-003
+[title] Configure users and groups
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] groupadd -f agent-common && groupadd -f agent-core
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 그룹 생성
+
+[성공] 그룹 생성
+[cmd] id agent-admin >/dev/null 2>&1 || useradd -m -s /bin/bash agent-admin; id agent-dev >/dev/null 2>&1 || useradd -m -s /bin/bash agent-dev; id agent-test >/dev/null 2>&1 || useradd -m -s /bin/bash agent-test
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 계정 생성
+
+[성공] 계정 생성
+[cmd] usermod -aG agent-common,agent-core agent-admin && usermod -aG agent-common,agent-core agent-dev && usermod -aG agent-common agent-test
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 그룹 멤버십 설정
+
+[성공] 그룹 멤버십 설정
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:37+09:00
+[req] ENV-002,PERM-004,PERM-005,PERM-006,DATA-001,BONUS-003,BONUS-004,BONUS-005
+[title] Configure directories, env, key
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] mkdir -p '/home/agent-admin/agent-app/bin' '/home/agent-admin/agent-app/upload_files' '/home/agent-admin/agent-app/api_keys' '/var/log/agent-app' '/var/log/monitor/agent-app/archive' /etc/profile.d
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 디렉토리 생성
+
+[성공] 디렉토리 생성
+[cmd] chown -R agent-admin:agent-core '/home/agent-admin/agent-app' '/var/log/agent-app' '/var/log/monitor/agent-app' && chgrp agent-common '/home/agent-admin/agent-app/upload_files' && chmod 2770 '/home/agent-admin/agent-app/upload_files' '/home/agent-admin/agent-app/api_keys' '/var/log/agent-app' '/var/log/monitor/agent-app/archive' && chmod 2750 '/home/agent-admin/agent-app' '/home/agent-admin/agent-app/bin'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 디렉토리 소유권/권한 설정
+
+[성공] 디렉토리 소유권/권한 설정
+[cmd] printf '%s\n' 'export AGENT_HOME=/home/agent-admin/agent-app' 'export AGENT_PORT=15034' 'export AGENT_UPLOAD_DIR=/home/agent-admin/agent-app/upload_files' 'export AGENT_KEY_PATH=/home/agent-admin/agent-app/api_keys' 'export AGENT_LOG_DIR=/var/log/agent-app' > /etc/profile.d/agent-app.sh && chmod 644 /etc/profile.d/agent-app.sh
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 환경 변수 profile 설정
+
+[성공] 환경 변수 profile 설정
+[cmd] printf '%s\n' 'agent_api_key_test' > '/home/agent-admin/agent-app/api_keys/t_secret.key' && chown agent-admin:agent-core '/home/agent-admin/agent-app/api_keys/t_secret.key' && chmod 660 '/home/agent-admin/agent-app/api_keys/t_secret.key'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 키 파일 생성
+
+[성공] 키 파일 생성
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:37+09:00
+[req] ENV-001,FUNC-004,NONFUNC-001,SUB-002,BONUS-001,BONUS-002
+[title] Install app and scripts
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] if pgrep -u agent-admin -f 'agent-app-linux|agent-app' >/dev/null 2>&1 && [ -x '/home/agent-admin/agent-app/bin/agent-app-linux-x86' ]; then echo 'running app binary preserved'; else python3 -c 'import os,sys,zipfile; z,m,t=sys.argv[1:4]; data=zipfile.ZipFile(z).read(m); os.makedirs(os.path.dirname(t), exist_ok=True); open(t, "wb").write(data); os.chmod(t, 0o750)' '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/agent-app.zip' 'agent-app-linux-x86' '/home/agent-admin/agent-app/bin/agent-app-linux-x86'; fi
+[stdout/stderr]
+running app binary preserved
+[exit] 0
+[interpretation] PASS: 제공 앱 바이너리 추출
+
+[성공] 제공 앱 바이너리 추출
+[cmd] chown agent-admin:agent-core '/home/agent-admin/agent-app/bin/agent-app-linux-x86' && chmod 750 '/home/agent-admin/agent-app/bin/agent-app-linux-x86' && ln -sfn '/home/agent-admin/agent-app/bin/agent-app-linux-x86' '/home/agent-admin/agent-app/bin/agent-app'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 제공 앱 바이너리 권한 설정
+
+[성공] 제공 앱 바이너리 권한 설정
+[cmd] install -o agent-dev -g agent-core -m 750 '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/monitor.sh' '/home/agent-admin/agent-app/bin/monitor.sh' && install -o agent-dev -g agent-core -m 750 '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/report.sh' '/home/agent-admin/agent-app/bin/report.sh'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: monitor/report 설치
+
+[성공] monitor/report 설치
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:38+09:00
+[req] FUNC-001,FUNC-002,FUNC-003
+[title] Start agent app
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] if pgrep -u agent-admin -f 'agent-app-linux|agent-app' >/dev/null 2>&1; then echo 'agent app already running'; else runuser -u agent-admin -- env AGENT_HOME='/home/agent-admin/agent-app' AGENT_PORT='15034' AGENT_UPLOAD_DIR='/home/agent-admin/agent-app/upload_files' AGENT_KEY_PATH='/home/agent-admin/agent-app/api_keys' AGENT_LOG_DIR='/var/log/agent-app' nohup '/home/agent-admin/agent-app/bin/agent-app-linux-x86' > '/var/log/agent-app/agent-app.boot.log' 2>&1 & echo $! > '/var/log/agent-app/agent-app.pid'; fi
+[stdout/stderr]
+agent app already running
+[exit] 0
+[interpretation] PASS: 앱 실행 또는 기존 실행 확인
+
+[성공] 앱 실행 또는 기존 실행 확인
+[cmd] for i in 1 2 3 4 5 6 7 8 9 10; do grep -q 'Agent READY' '/var/log/agent-app/agent-app.boot.log' 2>/dev/null && break; sleep 1; done; ok_count=$(grep -Ec '\[[1-5]/5\].*\[OK\]' '/var/log/agent-app/agent-app.boot.log' 2>/dev/null || printf 0); grep -q 'Agent READY' '/var/log/agent-app/agent-app.boot.log' && [ "$ok_count" -ge 5 ] && grep -E '\[[1-5]/5\].*\[OK\]|Agent READY' '/var/log/agent-app/agent-app.boot.log'
+[stdout/stderr]
+[1/5] Checking User Account               [OK]
+[2/5] Verifying Environment Variables     [OK]
+[3/5] Checking Required Files             [OK]
+[4/5] Checking Port Availability          [OK]
+[5/5] Verifying Log Permission            [OK]
+Agent READY
+[exit] 0
+[interpretation] PASS: 앱 READY/포트 대기
+
+[성공] 앱 READY/포트 대기
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:24:38+09:00
+[req] FUNC-012
+[title] Configure cron
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] crontab -u agent-admin -l > '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/runtime/archive/agent-admin.cron.20260527T152438+0900.bak' 2>/dev/null || :
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 기존 crontab 백업
+
+[성공] 기존 crontab 백업
+[cmd] tmp=$(mktemp); crontab -u agent-admin -l 2>/dev/null | grep -v '/home/agent-admin/agent-app/bin/monitor.sh' > $tmp || :; printf '* * * * * AGENT_HOME=/home/agent-admin/agent-app AGENT_PORT=15034 AGENT_LOG_DIR=/var/log/agent-app /home/agent-admin/agent-app/bin/monitor.sh >> /var/log/agent-app/monitor-cron.out 2>&1\n' >> $tmp; crontab -u agent-admin $tmp; rm -f $tmp
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 매분 monitor 등록
+
+[성공] 매분 monitor 등록
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:01+09:00
+[req] ENV-001,SEC-001,SEC-002,SEC-003,SEC-004,PERM-001,PERM-002,PERM-003,PERM-004,PERM-005,PERM-006,DATA-001,FUNC-001,FUNC-002,FUNC-003,FUNC-004,FUNC-010,FUNC-012,BONUS-001,BONUS-002,BONUS-003,BONUS-004,BONUS-005
+[title] Preflight
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] preflight checks
+[stdout/stderr]
+root_uid=1267600500 mission_zip=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/agent-app.zip monitor=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/monitor.sh report=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/report.sh
+[exit] 2
+[interpretation] BLOCKED: root 권한 또는 필수 명령/소스 파일이 부족해 시스템 적용을 중단한다.
+
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:05+09:00
+[req] ENV-001,SEC-001,SEC-002,SEC-003,SEC-004,PERM-001,PERM-002,PERM-003,PERM-004,PERM-005,PERM-006,DATA-001,FUNC-001,FUNC-002,FUNC-003,FUNC-004,FUNC-010,FUNC-012,BONUS-001,BONUS-002,BONUS-003,BONUS-004,BONUS-005
+[title] Preflight
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] preflight checks
+[stdout/stderr]
+root_uid=0 mission_zip=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/agent-app.zip monitor=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/monitor.sh report=/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/report.sh
+[exit] 0
+[interpretation] PASS: root 권한과 필수 소스/명령을 확인했다.
+
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:05+09:00
+[req] SEC-001,SEC-002
+[title] Configure OpenSSH
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] cp /etc/ssh/sshd_config '/etc/ssh/sshd_config.agent-mission.20260527T153305+0900.bak'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: SSH 설정 백업
+
+[성공] SSH 설정 백업
+[cmd] sed -i '/^# BEGIN agent mission$/,/^# END agent mission$/d' /etc/ssh/sshd_config && sed -i -E 's/^([[:space:]]*Port[[:space:]]+)/# agent mission disabled: \1/' /etc/ssh/sshd_config && sed -i -E 's/^([[:space:]]*PermitRootLogin[[:space:]]+)/# agent mission disabled: \1/' /etc/ssh/sshd_config && printf '\n# BEGIN agent mission\nPort 20022\nPermitRootLogin no\n# END agent mission\n' >> /etc/ssh/sshd_config
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: SSH Port/PermitRootLogin 설정 적용
+
+[성공] SSH Port/PermitRootLogin 설정 적용
+[cmd] '/usr/sbin/sshd' -t
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: sshd 설정 문법 검사
+
+[성공] sshd 설정 문법 검사
+[cmd] mkdir -p /etc/systemd/system/ssh.socket.d && printf '%s\n' '[Socket]' 'ListenStream=' 'ListenStream=20022' > /etc/systemd/system/ssh.socket.d/override.conf && systemctl daemon-reload
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: ssh.socket 20022 override 설정
+
+[성공] ssh.socket 20022 override 설정
+[cmd] systemctl restart ssh.socket 2>/dev/null || :; systemctl restart ssh || systemctl restart sshd || systemctl start ssh || systemctl start sshd
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: ssh 서비스 reload/start
+
+[성공] ssh 서비스 reload/start
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:05+09:00
+[req] SEC-003,SEC-004
+[title] Configure firewall
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] ufw status verbose > '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/runtime/archive/ufw_before_20260527T153305+0900.txt' 2>&1
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: UFW 현재 상태 백업
+
+[성공] UFW 현재 상태 백업
+[cmd] ufw --force reset && ufw default deny incoming && ufw default allow outgoing && ufw allow 20022/tcp && ufw allow 15034/tcp && ufw --force enable
+[stdout/stderr]
+WARN: / is world writable!
+Backing up 'user.rules' to '/etc/ufw/user.rules.20260527_153305'
+Backing up 'before.rules' to '/etc/ufw/before.rules.20260527_153305'
+Backing up 'after.rules' to '/etc/ufw/after.rules.20260527_153305'
+Backing up 'user6.rules' to '/etc/ufw/user6.rules.20260527_153305'
+Backing up 'before6.rules' to '/etc/ufw/before6.rules.20260527_153305'
+Backing up 'after6.rules' to '/etc/ufw/after6.rules.20260527_153305'
+
+WARN: / is world writable!
+Default incoming policy changed to 'deny'
+(be sure to update your rules accordingly)
+WARN: / is world writable!
+Default outgoing policy changed to 'allow'
+(be sure to update your rules accordingly)
+WARN: / is world writable!
+Rules updated
+Rules updated (v6)
+WARN: / is world writable!
+Rules updated
+Rules updated (v6)
+WARN: / is world writable!
+Firewall is active and enabled on system startup
+[exit] 0
+[interpretation] PASS: UFW 20022/15034 허용 정책 적용
+
+[성공] UFW 20022/15034 허용 정책 적용
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:06+09:00
+[req] PERM-001,PERM-002,PERM-003
+[title] Configure users and groups
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] groupadd -f agent-common && groupadd -f agent-core
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 그룹 생성
+
+[성공] 그룹 생성
+[cmd] id agent-admin >/dev/null 2>&1 || useradd -m -s /bin/bash agent-admin; id agent-dev >/dev/null 2>&1 || useradd -m -s /bin/bash agent-dev; id agent-test >/dev/null 2>&1 || useradd -m -s /bin/bash agent-test
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 계정 생성
+
+[성공] 계정 생성
+[cmd] usermod -aG agent-common,agent-core agent-admin && usermod -aG agent-common,agent-core agent-dev && usermod -aG agent-common agent-test
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 그룹 멤버십 설정
+
+[성공] 그룹 멤버십 설정
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:06+09:00
+[req] ENV-002,PERM-004,PERM-005,PERM-006,DATA-001,BONUS-003,BONUS-004,BONUS-005
+[title] Configure directories, env, key
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] mkdir -p '/home/agent-admin/agent-app/bin' '/home/agent-admin/agent-app/upload_files' '/home/agent-admin/agent-app/api_keys' '/var/log/agent-app' '/var/log/monitor/agent-app/archive' /etc/profile.d
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 디렉토리 생성
+
+[성공] 디렉토리 생성
+[cmd] chown -R agent-admin:agent-core '/home/agent-admin/agent-app' '/var/log/agent-app' '/var/log/monitor/agent-app' && chgrp agent-common '/home/agent-admin/agent-app/upload_files' && chmod 2770 '/home/agent-admin/agent-app/upload_files' '/home/agent-admin/agent-app/api_keys' '/var/log/agent-app' '/var/log/monitor/agent-app/archive' && chmod 2750 '/home/agent-admin/agent-app' '/home/agent-admin/agent-app/bin'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 디렉토리 소유권/권한 설정
+
+[성공] 디렉토리 소유권/권한 설정
+[cmd] printf '%s\n' 'export AGENT_HOME=/home/agent-admin/agent-app' 'export AGENT_PORT=15034' 'export AGENT_UPLOAD_DIR=/home/agent-admin/agent-app/upload_files' 'export AGENT_KEY_PATH=/home/agent-admin/agent-app/api_keys' 'export AGENT_LOG_DIR=/var/log/agent-app' > /etc/profile.d/agent-app.sh && chmod 644 /etc/profile.d/agent-app.sh
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 환경 변수 profile 설정
+
+[성공] 환경 변수 profile 설정
+[cmd] printf '%s\n' 'agent_api_key_test' > '/home/agent-admin/agent-app/api_keys/t_secret.key' && chown agent-admin:agent-core '/home/agent-admin/agent-app/api_keys/t_secret.key' && chmod 660 '/home/agent-admin/agent-app/api_keys/t_secret.key'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 키 파일 생성
+
+[성공] 키 파일 생성
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:06+09:00
+[req] ENV-001,FUNC-004,NONFUNC-001,SUB-002,BONUS-001,BONUS-002
+[title] Install app and scripts
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] if pgrep -u agent-admin -f 'agent-app-linux|agent-app' >/dev/null 2>&1 && [ -x '/home/agent-admin/agent-app/bin/agent-app-linux-x86' ]; then echo 'running app binary preserved'; else python3 -c 'import os,sys,zipfile; z,m,t=sys.argv[1:4]; data=zipfile.ZipFile(z).read(m); os.makedirs(os.path.dirname(t), exist_ok=True); open(t, "wb").write(data); os.chmod(t, 0o750)' '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/agent-app.zip' 'agent-app-linux-x86' '/home/agent-admin/agent-app/bin/agent-app-linux-x86'; fi
+[stdout/stderr]
+running app binary preserved
+[exit] 0
+[interpretation] PASS: 제공 앱 바이너리 추출
+
+[성공] 제공 앱 바이너리 추출
+[cmd] chown agent-admin:agent-core '/home/agent-admin/agent-app/bin/agent-app-linux-x86' && chmod 750 '/home/agent-admin/agent-app/bin/agent-app-linux-x86' && ln -sfn '/home/agent-admin/agent-app/bin/agent-app-linux-x86' '/home/agent-admin/agent-app/bin/agent-app'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 제공 앱 바이너리 권한 설정
+
+[성공] 제공 앱 바이너리 권한 설정
+[cmd] install -o agent-dev -g agent-core -m 750 '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/monitor.sh' '/home/agent-admin/agent-app/bin/monitor.sh' && install -o agent-dev -g agent-core -m 750 '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/submission/home/agent-admin/agent-app/bin/report.sh' '/home/agent-admin/agent-app/bin/report.sh'
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: monitor/report 설치
+
+[성공] monitor/report 설치
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:06+09:00
+[req] FUNC-001,FUNC-002,FUNC-003
+[title] Start agent app
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] if pgrep -u agent-admin -f 'agent-app-linux|agent-app' >/dev/null 2>&1; then echo 'agent app already running'; else runuser -u agent-admin -- env AGENT_HOME='/home/agent-admin/agent-app' AGENT_PORT='15034' AGENT_UPLOAD_DIR='/home/agent-admin/agent-app/upload_files' AGENT_KEY_PATH='/home/agent-admin/agent-app/api_keys' AGENT_LOG_DIR='/var/log/agent-app' nohup '/home/agent-admin/agent-app/bin/agent-app-linux-x86' > '/var/log/agent-app/agent-app.boot.log' 2>&1 & echo $! > '/var/log/agent-app/agent-app.pid'; fi
+[stdout/stderr]
+agent app already running
+[exit] 0
+[interpretation] PASS: 앱 실행 또는 기존 실행 확인
+
+[성공] 앱 실행 또는 기존 실행 확인
+[cmd] for i in 1 2 3 4 5 6 7 8 9 10; do grep -q 'Agent READY' '/var/log/agent-app/agent-app.boot.log' 2>/dev/null && break; sleep 1; done; ok_count=$(grep -Ec '\[[1-5]/5\].*\[OK\]' '/var/log/agent-app/agent-app.boot.log' 2>/dev/null || printf 0); grep -q 'Agent READY' '/var/log/agent-app/agent-app.boot.log' && [ "$ok_count" -ge 5 ] && grep -E '\[[1-5]/5\].*\[OK\]|Agent READY' '/var/log/agent-app/agent-app.boot.log'
+[stdout/stderr]
+[1/5] Checking User Account               [OK]
+[2/5] Verifying Environment Variables     [OK]
+[3/5] Checking Required Files             [OK]
+[4/5] Checking Port Availability          [OK]
+[5/5] Verifying Log Permission            [OK]
+Agent READY
+[exit] 0
+[interpretation] PASS: 앱 READY/포트 대기
+
+[성공] 앱 READY/포트 대기
+===== apply_system.sh block =====
+[ts] 2026-05-27T15:33:06+09:00
+[req] FUNC-012
+[title] Configure cron
+[cwd] /home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1
+[cmd] crontab -u agent-admin -l > '/home/shh921shh4393/.dev/codyssey-mission/2026-main-1-1/runtime/archive/agent-admin.cron.20260527T153306+0900.bak' 2>/dev/null || :
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 기존 crontab 백업
+
+[성공] 기존 crontab 백업
+[cmd] tmp=$(mktemp); crontab -u agent-admin -l 2>/dev/null | grep -v '/home/agent-admin/agent-app/bin/monitor.sh' > $tmp || :; printf '* * * * * AGENT_HOME=/home/agent-admin/agent-app AGENT_PORT=15034 AGENT_LOG_DIR=/var/log/agent-app /home/agent-admin/agent-app/bin/monitor.sh >> /var/log/agent-app/monitor-cron.out 2>&1\n' >> $tmp; crontab -u agent-admin $tmp; rm -f $tmp
+[stdout/stderr]
+[exit] 0
+[interpretation] PASS: 매분 monitor 등록
+
+[성공] 매분 monitor 등록
