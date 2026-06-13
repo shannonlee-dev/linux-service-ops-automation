@@ -10,7 +10,7 @@ from pathlib import Path
 from .paths import APPLY, LOGROTATE_TEMPLATE, ROOT, SYSTEMD_UNIT_TEMPLATE
 from .runner import run
 from .style import S
-from .ui import finish, header, yes_no
+from .ui import finish, header, status_line, yes_no
 
 
 LOGROTATE_POLICY = Path("/etc/logrotate.d/agent-app")

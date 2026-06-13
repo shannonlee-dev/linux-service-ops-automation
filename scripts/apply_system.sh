@@ -91,7 +91,7 @@ log_block_start "Readiness checks"
 printf '[실행] 설치 전 점검\n'
 readiness_ok=0
 [ "$(id -u)" -eq 0 ] || readiness_ok=1
-for cmd in awk bash chmod chown cp date fuser getent grep id install logrotate mkdir mv pgrep pkill ps sed stat unzip useradd groupadd usermod python3 ssh-keygen; do
+for cmd in awk bash cat chmod chown cp date fuser getconf getent grep head id install logrotate mkdir mv pgrep pkill ps sed stat tr unzip useradd groupadd usermod python3 ssh-keygen; do
   need_cmd "$cmd" || readiness_ok=1
 done
 [ -s "$AGENT_ZIP" ] || readiness_ok=1

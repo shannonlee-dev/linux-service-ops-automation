@@ -91,8 +91,10 @@ AGENT_LOG_DIR=/var/log/agent-app
   - `agent_app.py` 프로세스 확인, 실패 시 `exit 1`
   - TCP `15034` LISTEN 확인, 실패 시 `exit 1`
   - UFW/firewalld 활성 상태 점검, 비활성 시 `[WARNING]`만 출력
-  - CPU, MEM, 루트 파티션 DISK_USED 수집
-  - CPU `>20%`, MEM `>10%`, DISK_USED `>80%` 경고 출력
+  - CPU는 `/proc/<pid>/stat`와 `/proc/stat`의 1초 샘플 차이로 최근 사용률 수집
+  - MEM은 `/proc/<pid>/status`의 `VmRSS`를 `/proc/meminfo`의 `MemTotal` 대비 비율로 수집
+  - DISK_USED는 `AGENT_HOME`과 `AGENT_LOG_DIR` 합산 사용량을 `AGENT_DISK_WARN_MB` 기준 대비 비율로 수집
+  - CPU `>20%`, MEM `>10%`, DISK_USED `>100%` 경고 출력
   - `/var/log/agent-app/monitor.log` 누적 기록
   - `monitor.log` 최대 `10MB/10개` 회전 보존
 
@@ -101,7 +103,7 @@ AGENT_LOG_DIR=/var/log/agent-app
 - `agent-admin` crontab에 매분 실행을 등록했다.
 
 ```sh
-* * * * * /home/agent-admin/agent-app/bin/monitor.sh >/tmp/agent-monitor-cron.out 2>/tmp/agent-monitor-cron.err
+* * * * * AGENT_HOME=/home/agent-admin/agent-app AGENT_PORT=15034 AGENT_UPLOAD_DIR=/home/agent-admin/agent-app/upload_files AGENT_KEY_PATH=/home/agent-admin/agent-app/api_keys AGENT_LOG_DIR=/var/log/agent-app /home/agent-admin/agent-app/bin/monitor.sh >> /var/log/agent-app/monitor-cron.out 2>&1
 ```
 
 ### 보너스 산출물

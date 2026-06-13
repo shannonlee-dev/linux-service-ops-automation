@@ -76,7 +76,7 @@ END {
   print "====== STATISTICS REPORT ======"
   emit_section("Agent CPU", cpu_sum / count, cpu_max, cpu_max_ts, cpu_min, cpu_min_ts)
   emit_section("Agent Memory", mem_sum / count, mem_max, mem_max_ts, mem_min, mem_min_ts)
-  emit_section("Root Disk", disk_sum / count, disk_max, disk_max_ts, disk_min, disk_min_ts)
+  emit_section("Agent Disk Budget", disk_sum / count, disk_max, disk_max_ts, disk_min, disk_min_ts)
   print "[Samples]"
   printf("Data Points: %d samples\n", count)
 }' "$LOG_FILE"

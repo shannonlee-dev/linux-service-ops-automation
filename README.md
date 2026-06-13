@@ -36,6 +36,9 @@ python3 main.py
 - systemd가 없는 컨테이너/실습 환경에서는 CLI가 background 실행으로 fallback합니다.
 - 업로드 디렉터리는 `agent-common`, 키와 로그는 `agent-core` 중심 권한으로 분리합니다.
 - `monitor.sh`는 cron으로 매분 실행되어 `/var/log/agent-app/monitor.log`에 상태를 누적합니다.
+- CPU는 `/proc/<pid>/stat`와 `/proc/stat`을 1초 간격으로 샘플링해 agent 프로세스의 최근 사용률을 계산합니다.
+- Memory는 `/proc/<pid>/status`의 `VmRSS`를 `/proc/meminfo`의 `MemTotal` 대비 비율로 계산합니다.
+- Disk는 `AGENT_HOME`과 `AGENT_LOG_DIR`의 합산 사용량을 `AGENT_DISK_WARN_MB` 기준 대비 비율로 계산합니다.
 - `monitor.log`는 logrotate로 10MB 기준 회전하며 최대 10개까지 보관합니다.
 - `report.sh`는 monitor 로그에서 CPU, 메모리, 디스크 사용률 통계를 계산합니다.
 
