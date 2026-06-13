@@ -1,0 +1,25 @@
+[Unit]
+Description=Agent App Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=agent-admin
+Group=agent-core
+WorkingDirectory=/home/agent-admin/agent-app
+Environment=AGENT_HOME=/home/agent-admin/agent-app
+Environment=AGENT_PORT=15034
+Environment=AGENT_UPLOAD_DIR=/home/agent-admin/agent-app/upload_files
+Environment=AGENT_KEY_PATH=/home/agent-admin/agent-app/api_keys
+Environment=AGENT_LOG_DIR=/var/log/agent-app
+ExecStart=/home/agent-admin/agent-app/bin/agent-app
+Restart=on-failure
+RestartSec=3
+StandardOutput=append:/var/log/agent-app/agent-app.out
+StandardError=append:/var/log/agent-app/agent-app.err
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

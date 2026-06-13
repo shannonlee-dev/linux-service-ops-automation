@@ -1,0 +1,10 @@
+/var/log/agent-app/*.log /var/log/agent-app/*.out /var/log/agent-app/*.err {
+    su agent-admin agent-core
+    size 10M
+    rotate 10
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+}
