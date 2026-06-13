@@ -189,9 +189,9 @@ run_cmd "그룹 멤버십 설정" "usermod -aG agent-common,agent-core agent-adm
 # 백업/복구: 기존 파일은 삭제하지 않고 필요한 권한만 조정한다.
 log_block_start "Configure directories, env, key"
 printf '[실행] 디렉토리/환경/키 설정\n'
-run_cmd "디렉토리 생성" "mkdir -p '${AGENT_HOME}/bin' '${AGENT_UPLOAD_DIR}' '${AGENT_KEY_DIR}' '${AGENT_LOG_DIR}' /etc/profile.d"
+run_cmd "디렉토리 생성" "mkdir -p '${AGENT_HOME}/bin' '${AGENT_UPLOAD_DIR}' '${AGENT_KEY_DIR}' '${AGENT_LOG_DIR}'"
 run_cmd "디렉토리 소유권/권한 설정" "chown -R agent-admin:agent-core '${AGENT_HOME}' '${AGENT_LOG_DIR}' && chgrp agent-common '${AGENT_UPLOAD_DIR}' && chmod 2770 '${AGENT_UPLOAD_DIR}' '${AGENT_KEY_DIR}' '${AGENT_LOG_DIR}' && chmod 2750 '${AGENT_HOME}' '${AGENT_HOME}/bin'"
-run_cmd "환경 변수 전역 설정" "printf '%s\\n' 'export AGENT_HOME=${AGENT_HOME}' 'export AGENT_PORT=${AGENT_PORT}' 'export AGENT_UPLOAD_DIR=${AGENT_UPLOAD_DIR}' 'export AGENT_KEY_PATH=${AGENT_KEY_PATH}' 'export AGENT_LOG_DIR=${AGENT_LOG_DIR}' > /etc/profile.d/agent-app.sh && chmod 644 /etc/profile.d/agent-app.sh && touch /etc/bash.bashrc && sed -i '/^# BEGIN agent-app env$/,/^# END agent-app env$/d' /etc/bash.bashrc && printf '\\n# BEGIN agent-app env\\nexport AGENT_HOME=${AGENT_HOME}\\nexport AGENT_PORT=${AGENT_PORT}\\nexport AGENT_UPLOAD_DIR=${AGENT_UPLOAD_DIR}\\nexport AGENT_KEY_PATH=${AGENT_KEY_PATH}\\nexport AGENT_LOG_DIR=${AGENT_LOG_DIR}\\n# END agent-app env\\n' >> /etc/bash.bashrc"
+run_cmd "환경 변수 전역 설정 제거" "rm -f /etc/profile.d/agent-app.sh && if [ -f /etc/bash.bashrc ]; then sed -i '/^# BEGIN agent-app env$/,/^# END agent-app env$/d' /etc/bash.bashrc; fi"
 run_cmd "키 파일 생성" "printf '%s\\n' 'agent_api_key_test' > '${AGENT_KEY_FILE}' && chown agent-admin:agent-core '${AGENT_KEY_FILE}' && chmod 660 '${AGENT_KEY_FILE}'"
 
 log_block_start "Stop existing agent"

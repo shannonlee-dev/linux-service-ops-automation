@@ -15,6 +15,8 @@ from .ui import finish, header, status_line, yes_no
 
 LOGROTATE_POLICY = Path("/etc/logrotate.d/agent-app")
 SYSTEMD_UNIT = Path("/etc/systemd/system/agent-app.service")
+PROFILE_ENV = Path("/etc/profile.d/agent-app.sh")
+BASH_BASHRC = Path("/etc/bash.bashrc")
 AGENT_HOME = Path("/home/agent-admin/agent-app")
 AGENT_PORT = "15034"
 AGENT_UPLOAD_DIR = AGENT_HOME / "upload_files"
@@ -1047,15 +1049,15 @@ def restart_agent(*, interactive: bool = True, assume_yes: bool = False) -> int:
 
 def _verify_environment_and_app() -> list[bool]:
     results: list[bool] = []
-    profile = _file_text(Path("/etc/profile.d/agent-app.sh"))
-    expected_exports = [
-        f"export AGENT_HOME={AGENT_HOME}",
-        f"export AGENT_PORT={AGENT_PORT}",
-        f"export AGENT_UPLOAD_DIR={AGENT_UPLOAD_DIR}",
-        f"export AGENT_KEY_PATH={AGENT_KEY_PATH}",
-        f"export AGENT_LOG_DIR={AGENT_LOG_DIR}",
-    ]
-    results.append(_check_status("환경 변수 profile", all(item in profile for item in expected_exports)))
+    profile_clean = not PROFILE_ENV.exists()
+    bashrc_clean = "# BEGIN agent-app env" not in _file_text(BASH_BASHRC)
+    results.append(
+        _check_status(
+            "환경 변수 전역 미등록",
+            profile_clean and bashrc_clean,
+            "profile.d/bash.bashrc에 남지 않음" if profile_clean and bashrc_clean else "전역 shell 설정에 agent env 흔적 있음",
+        )
+    )
 
     code, ps_output = _capture(PS_AGENT_COMMAND)
     agent_records = _agent_process_records(ps_output) if code == 0 else []
