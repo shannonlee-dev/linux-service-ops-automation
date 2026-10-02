@@ -76,7 +76,7 @@ check_port() {
 check_firewall() {
   if command -v ufw >/dev/null 2>&1; then
     status="$(ufw status 2>/dev/null | head -n 1 || true)"
-    if printf '%s\n' "$status" | grep -qi 'active'; then
+    if printf '%s\n' "$status" | grep -qi '^Status: active$'; then
       printf 'Firewall status: [OK] UFW active\n'
     else
       warn "UFW is not active"

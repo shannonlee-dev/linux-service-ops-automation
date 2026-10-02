@@ -12,7 +12,7 @@ from ..style import S
 from ..ui import finish, header
 from .cron_runtime import _crontab_text, _monitor_log_count
 from .logs import _sudo_logrotate_dry_run
-from .process import _agent_process_records, _app_port_listening
+from .process import _agent_process_records, _app_port_listening, _tcp_port_listening
 from .settings import (
     AGENT_HOME,
     AGENT_KEY_DIR,
@@ -61,9 +61,8 @@ def _verify_ssh() -> list[bool]:
         _check_status("Root 원격 로그인 차단", effective_root or configured_root)
     )
 
-    code, ss_output = _capture(["ss", "-H", "-tuln"])
-    listens = code == 0 and f":{AGENT_PORT}" in ss_output
-    ssh_listens = code == 0 and ":20022" in ss_output
+    listens = _app_port_listening()
+    ssh_listens = _tcp_port_listening("20022")
     results.append(_check_status("SSH 20022 LISTEN", ssh_listens))
     results.append(_check_status("APP 15034 LISTEN", listens))
     return results

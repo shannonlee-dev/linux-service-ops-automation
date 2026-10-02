@@ -8,9 +8,24 @@ from .settings import AGENT_PORT, PS_AGENT_COMMAND
 from .support import _capture, _sudo_capture, _systemd_available
 
 
-def _app_port_listening() -> bool:
+def _tcp_port_listening(port: str) -> bool:
     code, ss_output = _capture(["ss", "-H", "-tuln"])
-    return code == 0 and f":{AGENT_PORT}" in ss_output
+    if code != 0:
+        return False
+    for line in ss_output.splitlines():
+        fields = line.split()
+        if (
+            len(fields) >= 5
+            and fields[0] == "tcp"
+            and fields[1] == "LISTEN"
+            and fields[4].rsplit(":", 1)[-1] == port
+        ):
+            return True
+    return False
+
+
+def _app_port_listening() -> bool:
+    return _tcp_port_listening(AGENT_PORT)
 
 
 def _agent_process_records(ps_output: str) -> list[tuple[str, str, str]]:
