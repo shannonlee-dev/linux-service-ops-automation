@@ -251,7 +251,7 @@ printf '[실행] cron 등록\n'
 if command -v crontab >/dev/null 2>&1; then
   cron_backup="${RUNTIME_DIR}/archive/agent-admin.cron.$(date +%Y%m%dT%H%M%S%z).bak"
   run_cmd "기존 crontab 백업" "crontab -u agent-admin -l > '$cron_backup' 2>/dev/null || :"
-run_cmd "매분 monitor 등록" "tmp=\$(mktemp); crontab -u agent-admin -l 2>/dev/null | grep -v '/home/agent-admin/agent-app/bin/monitor.sh' > \$tmp || :; printf '* * * * * AGENT_HOME=${AGENT_HOME} AGENT_PORT=${AGENT_PORT} AGENT_UPLOAD_DIR=${AGENT_UPLOAD_DIR} AGENT_KEY_PATH=${AGENT_KEY_PATH} AGENT_LOG_DIR=${AGENT_LOG_DIR} ${AGENT_HOME}/bin/monitor.sh >> ${AGENT_LOG_DIR}/monitor-cron.out 2>&1\\n' >> \$tmp; crontab -u agent-admin \$tmp; rm -f \$tmp"
+run_cmd "매분 monitor 등록" "tmp=\$(mktemp); crontab -u agent-admin -l 2>/dev/null | grep -v '/home/agent-admin/agent-app/bin/monitor.sh' > \$tmp || :; printf '* * * * * AGENT_HOME=${AGENT_HOME} AGENT_PORT=${AGENT_PORT} AGENT_UPLOAD_DIR=${AGENT_UPLOAD_DIR} AGENT_KEY_PATH=${AGENT_KEY_PATH} AGENT_LOG_DIR=${AGENT_LOG_DIR} ${AGENT_HOME}/bin/monitor.sh >> ${AGENT_LOG_DIR}/monitor-cron.out 2>&1\\n' >> \$tmp; cron_status=0; crontab -u agent-admin \$tmp || cron_status=\$?; rm -f \$tmp; exit \"\$cron_status\""
 else
   run_cmd "crontab 명령 확인" "false"
 fi

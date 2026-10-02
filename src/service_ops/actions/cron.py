@@ -121,8 +121,8 @@ def install_cron(*, interactive: bool = True, assume_yes: bool = False) -> int:
         "tmp=$(mktemp); "
         f'crontab -u agent-admin -l 2>/dev/null | grep -v {shlex_quote(str(MONITOR_SCRIPT))} > "$tmp" || :; '
         f"printf '%s\\n' {shlex_quote(CRON_COMMAND)} >> \"$tmp\"; "
-        'crontab -u agent-admin "$tmp"; '
-        'rm -f "$tmp"'
+        'cron_status=0; crontab -u agent-admin "$tmp" || cron_status=$?; '
+        'rm -f "$tmp"; exit "$cron_status"'
     )
     code = run(["sudo", "bash", "-lc", script])
     if code == 0:
