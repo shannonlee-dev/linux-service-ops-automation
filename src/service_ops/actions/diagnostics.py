@@ -18,7 +18,6 @@ from .settings import (
     AGENT_KEY_DIR,
     AGENT_KEY_FILE,
     AGENT_LOG_DIR,
-    AGENT_PORT,
     AGENT_UPLOAD_DIR,
     BASH_BASHRC,
     LOGROTATE_POLICY,
