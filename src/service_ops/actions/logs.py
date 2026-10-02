@@ -197,14 +197,15 @@ def _summarize_monitor_rotation(
     print(
         f"{'현재 크기':<18} {_human_bytes(current_size)} / {_human_bytes(LOGROTATE_SIZE_BYTES)}"
     )
-    print(
-        f"{'보관 파일':<18} {len(monitor_files)}/{LOGROTATE_KEEP_COUNT}개, {_human_bytes(total_size)}"
-    )
+    print(f"{'전체 보관 파일':<18} {len(monitor_files)}개, {_human_bytes(total_size)}")
     if monitor_log:
         print(f"{'현재 파일':<18} {_human_bytes(monitor_log[1])}  {monitor_log[0]}")
     else:
         print(f"{'현재 파일':<18} 없음")
-    print(f"{'회전/압축본':<18} {len(monitor_rotated)}개, {_human_bytes(rotated_size)}")
+    print(
+        f"{'회전/압축본':<18} {len(monitor_rotated)}/{LOGROTATE_KEEP_COUNT}개, "
+        f"{_human_bytes(rotated_size)}"
+    )
     for name, size, _ in monitor_rotated[:5]:
         print(S.dim(f"  {_human_bytes(size):>8}  {name}"))
     if len(monitor_rotated) > 5:
