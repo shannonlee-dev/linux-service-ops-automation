@@ -1,0 +1,38 @@
+name: 저장소 검증
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: 문서와 재현 절차 검증
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 저장소 가져오기
+        uses: actions/checkout@v4
+      - name: 파이썬 준비
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: uv 준비
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.12.3'
+      - name: 잠금 파일로 의존성 설치
+        run: uv sync --frozen
+      - name: 문법과 문서 검사
+        run: make check
+      - name: 모듈 회귀 테스트
+        run: make test
+      - name: 패키지 빌드
+        run: make build

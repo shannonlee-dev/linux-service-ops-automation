@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from .actions import (
     apply_system,
-    crontab_dashboard,
     cron_service_menu,
+    crontab_dashboard,
     logrotate_dashboard,
     restart_agent,
     service_status,

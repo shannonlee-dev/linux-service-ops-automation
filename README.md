@@ -1,73 +1,72 @@
-# Agent Service Operations
+# 리눅스 서비스 운영 자동화
 
-`agent-app`을 설치, 실행, 관제하기 위한 운영 CLI입니다. 서비스 계정, 권한, 로그, cron 모니터링, logrotate 보관 정책을 한 곳에서 다룹니다.
+## 프로젝트 소개
 
-## 핵심 명령
+`agent-app`의 설치·실행·관제를 위한 Python CLI와 셸 스크립트입니다. 서비스 계정, 권한, systemd, cron, 리소스 모니터링, 로그 보관을 하나의 운영 흐름으로 구성합니다.
 
-```bash
-python3 main.py status        # 서비스 상태 대시보드
-python3 main.py start --yes   # agent 서비스 시작
-python3 main.py start --foreground # 현재 터미널에서 agent 실행
-python3 main.py start --follow-logs # 시작 후 stdout/stderr 로그 따라보기
-python3 main.py stop --yes    # agent 프로세스 종료
-python3 main.py restart --yes # 재시작
-python3 main.py logs          # monitor.log tail
-python3 main.py report        # monitor.log 통계 리포트
-python3 main.py retention     # monitor.log 보관/회전 현황
-python3 main.py cron          # monitor.sh cron 등록 상태
-python3 main.py cron-service status # cron 데몬 상태
-python3 main.py cron-service start --yes # cron 데몬 시작
-python3 main.py cron-service stop --yes # cron 데몬 중지
-python3 main.py cron-enable --yes
-python3 main.py cron-check    # cron/agent를 필요 시 준비하고 자동 누적 확인
-python3 main.py doctor        # 운영 구성 진단
-python3 main.py install --yes # 시스템 설치/수리
-```
+## 핵심 특징
 
-인자 없이 실행하면 운영 메뉴가 열립니다.
+- 서비스 상태·진단·시작·중지·재시작
+- systemd 실행과 비지원 환경의 백그라운드 실행
+- CPU·메모리·디스크 샘플과 로그 통계
+- cron 등록 상태 확인과 주기적 모니터링
+- logrotate의 10MB 기준 회전과 최대 10개 보관
+- 계정·그룹별 파일 접근 권한 분리
 
-```bash
-python3 main.py
-```
+## 아키텍처
 
-## 운영 모델
+`service-ops → src/service_ops/actions → 운영 명령·셸 스크립트 → 리눅스 서비스` 흐름입니다. 실제 설치 자산과 시스템 설정 템플릿은 구현 패키지 밖에 둡니다.
 
-- 앱은 systemd가 있는 환경에서는 `agent-app.service`로 실행하고, 서비스 프로세스는 `agent-admin` 계정으로 동작합니다.
-- systemd가 없는 컨테이너/실습 환경에서는 CLI가 background 실행으로 fallback합니다.
-- 업로드 디렉터리는 `agent-common`, 키와 로그는 `agent-core` 중심 권한으로 분리합니다.
-- `monitor.sh`는 cron으로 매분 실행되어 `/var/log/agent-app/monitor.log`에 상태를 누적합니다.
-- CPU는 `/proc/<pid>/stat`와 `/proc/stat`을 1초 간격으로 샘플링해 agent 프로세스의 최근 사용률을 계산합니다.
-- Memory는 `/proc/<pid>/status`의 `VmRSS`를 `/proc/meminfo`의 `MemTotal` 대비 비율로 계산합니다.
-- Disk는 `AGENT_HOME`과 `AGENT_LOG_DIR`의 합산 사용량을 `AGENT_DISK_WARN_MB` 기준 대비 비율로 계산합니다.
-- `monitor.log`는 logrotate로 10MB 기준 회전하며 최대 10개까지 보관합니다.
-- `report.sh`는 monitor 로그에서 CPU, 메모리, 디스크 사용률 통계를 계산합니다.
-
-## 설치/수리
-
-`install`은 실제 시스템 설정을 변경합니다.
-
-- 로컬 사용자/그룹 생성 및 멤버십 설정
-- `/home/agent-admin/agent-app`와 `/var/log/agent-app` 권한 정리
-- agent 바이너리, monitor/report 스크립트 설치
-- cron 등록
-- logrotate 정책 설치
-- SSH와 방화벽 정책 적용
-
-실행 전 변경 범위를 확인하고, 운영 중인 접속 세션을 유지한 상태에서 실행하세요.
-
-```bash
-python3 main.py install
-```
-
-## 파일 구조
-
-| Path | Description |
+| 경로 | 역할 |
 | --- | --- |
-| `main.py` | CLI 진입점 |
-| `service_ops/` | 운영 CLI 구현 |
-| `scripts/apply_system.sh` | 시스템 설치/수리 스크립트 |
-| `scripts/agent/monitor.sh` | 서비스/리소스 샘플 수집 |
-| `scripts/agent/report.sh` | monitor.log 통계 리포트 |
-| `config/logrotate/agent-app` | 로그 보관 정책 |
-| `config/systemd/agent-app.service` | systemd 서비스 유닛 |
-| `assets/agent-app/` | agent 바이너리 배포 자산 |
+| `src/service_ops/` | 운영 CLI와 진단 |
+| `scripts/apply_system.sh` | 계정·권한·서비스 설치 |
+| `scripts/agent/` | 모니터링과 통계 보고 |
+| `config/systemd/`, `config/logrotate/` | 시스템 설정 템플릿 |
+| `assets/agent-app/` | 기존 x86·ARM 배포 바이너리와 압축본 |
+| `docs/operations.md` | 설치·운영·검증 절차 |
+
+```mermaid
+flowchart LR
+    CLI["운영 CLI·메뉴"] --> Actions["기능별 운영 명령"]
+    Actions --> Process["프로세스·포트 확인"]
+    Actions --> Install["설치 스크립트"]
+    Actions --> Service["서비스 제어"]
+    Actions --> Logs["로그·보고서·보관"]
+    Actions --> Cron["cron 관리"]
+    Config["systemd·logrotate 설정"] --> Install
+    Assets["배포 바이너리"] --> Install
+    Install --> Host["Linux 호스트"]
+    Service --> Host
+    Cron --> Host
+    Host --> Logs
+```
+
+소스는 `src/service_ops/`, 회귀 테스트는 `tests/`, 개발 보조 도구는 `scripts/`에 둡니다. `pyproject.toml`이 패키지·명령·개발 도구를 선언하고 `uv.lock`이 설치 버전을 고정합니다. `uv sync --frozen`은 소스를 개발 모드로 설치하므로 앱 실행과 테스트에 별도 `PYTHONPATH` 설정이 필요하지 않습니다.
+
+## 실행 환경과 시작하기
+
+Python 3.10 이상과 Bash가 필요합니다. 실제 운영에는 Linux, `/proc`, 서비스·cron·로그 관리 도구 및 설치 권한이 필요합니다. 로컬 문법 검사에는 관리자 권한이나 대상 앱 설치가 필요하지 않습니다.
+
+```bash
+uv sync --frozen
+uv run --frozen service-ops --help
+make check
+make test
+make smoke
+make build
+```
+
+운영 CLI는 저장소 루트에서 실행합니다. 인자가 없으면 대화형 메뉴가 열립니다. 운영 환경을 준비한 후 `uv run --frozen service-ops status`와 `uv run --frozen service-ops doctor`로 상태를 확인합니다.
+
+## 설치와 운영
+
+`install`은 사용자·그룹, `/home/agent-admin/agent-app`, `/var/log/agent-app`, cron, logrotate, SSH·방화벽 설정을 변경합니다. 적용 대상이 준비된 실습 호스트인지 확인한 뒤 [운영 안내](docs/operations.md)를 따릅니다.
+
+CI와 `make smoke`는 도움말과 기존 문법 검사만 실행합니다. 설치·서비스 시작·cron 등록을 자동 실행하지 않습니다.
+
+## 검증 범위
+
+문법 검사와 실제 호스트 검증은 구분합니다. 계정·권한·포트·로그 증가는 [운영 안내](docs/operations.md)에 따라 적용 대상에서 확인합니다. 바이너리는 제공된 자산이며 이 레포에서 빌드하는 소스는 포함하지 않습니다.
+
+`make check`는 정적 분석·포맷·문서 검사를, `make test`는 `uv run --frozen pytest -q`로 전체 동작 검사를 실행합니다. `make smoke`는 같은 테스트 중 `smoke` 마커가 붙은 실행 확인만 선택합니다(`uv run --frozen pytest -q -m smoke`). 테스트는 `test_*.py`와 fixture로 구성하며 임시 DB·파일과 모의 요청을 사용합니다.

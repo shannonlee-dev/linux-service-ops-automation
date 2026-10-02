@@ -20,7 +20,7 @@ def header() -> None:
     clear()
     print(S.title("Agent Service Operations"))
     print("agent 서비스 상태, 로그, 모니터링, 보관 정책을 다루는 운영 CLI")
-    print(S.dim("자동화용 명령도 지원: python3 main.py --help"))
+    print(S.dim("자동화용 명령도 지원: uv run service-ops --help"))
     print(S.dim(f"repo: {ROOT}"))
     print()
 

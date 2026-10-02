@@ -262,7 +262,7 @@ run_cmd "15034 포트/agent 프로세스 종료" "fuser -k -TERM ${AGENT_PORT}/t
 
 printf '최종 종료 코드: %s\n전체 로그: runtime/work.log\n' "$RUN_EXIT"
 if [ "$RUN_EXIT" -eq 0 ]; then
-  printf '다음 단계: python3 main.py start --yes\n'
+  printf '다음 단계: uv run service-ops start --yes\n'
 else
   printf '실패 항목을 확인한 뒤 설치/수리를 다시 실행하세요.\n'
 fi

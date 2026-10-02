@@ -1,0 +1,49 @@
+name: 버그 신고
+description: 실행 오류나 예상과 다른 동작을 재현 정보와 함께 알려 주세요.
+title: "[버그] "
+labels: [버그]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 문제 영역
+      options:
+        - 서비스 실행과 상태
+        - 설치와 파일 권한
+        - 모니터링
+        - cron과 로그 보관
+        - 실행·검증·문서
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 재현 방법
+      description: 시작 상태와 실행한 명령·입력·화면 이동을 순서대로 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 결과
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 실제 결과
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 실행 환경
+      description: Linux 배포판, Python 버전, systemd 사용 여부, 실행 명령과 권한, 사용 중인 커밋을 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 관련 로그
+      description: 비밀값과 개인정보를 제거한 오류 메시지나 로그를 붙여 주세요.
+      render: text
