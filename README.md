@@ -69,4 +69,4 @@ CI와 `make smoke`는 도움말과 기존 문법 검사만 실행합니다. 설�
 
 문법 검사와 실제 호스트 검증은 구분합니다. 계정·권한·포트·로그 증가는 [운영 안내](docs/operations.md)에 따라 적용 대상에서 확인합니다. 바이너리는 제공된 자산이며 이 레포에서 빌드하는 소스는 포함하지 않습니다.
 
-`make check`는 정적 분석·포맷·문서 검사를, `make test`는 `uv run --frozen pytest -q`로 전체 동작 검사를 실행합니다. `make smoke`는 같은 테스트 중 `smoke` 마커가 붙은 실행 확인만 선택합니다(`uv run --frozen pytest -q -m smoke`). 테스트는 `test_*.py`와 fixture로 구성하며 임시 DB·파일과 모의 요청을 사용합니다.
+`make check`는 정적 분석·포맷·문서 검사를, `make test`는 `uv run --frozen pytest -q`로 저장소의 회귀 테스트를 실행합니다. 도움말·문법 검사, cron 실패 전달, TCP 리스너·방화벽 판정, 로그 통계·회전본 개수, 서비스 제어의 실패·취소 경로를 임시 파일과 모의 시스템 명령으로 검증합니다. `make smoke`는 이 중 도움말과 문법 검사만 선택합니다(`uv run --frozen pytest -q -m smoke`). 실제 설치·서비스 부팅·권한·cron 스케줄 실행·logrotate 회전은 전용 호스트에서 별도로 검증해야 합니다.
