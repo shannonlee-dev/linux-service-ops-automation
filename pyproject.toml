@@ -8,7 +8,7 @@ dependencies = []
 
 
 [dependency-groups]
-dev = ["pytest>=8,<9", "ruff"]
+dev = ["pytest>=8,<10", "ruff"]
 
 [build-system]
 requires = ["hatchling>=1.27,<2"]
