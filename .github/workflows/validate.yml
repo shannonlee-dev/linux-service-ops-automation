@@ -19,13 +19,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 저장소 가져오기
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: 파이썬 준비
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - name: uv 준비
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           version: '0.12.3'
       - name: 잠금 파일로 의존성 설치
